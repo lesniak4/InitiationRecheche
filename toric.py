@@ -13,7 +13,7 @@ def buildToric() :
 
     stabs_z = [] # Faces : (TOP, RIGHT,  BOTTOM, LEFT)
     stabs_x = [] # Vertices : (TOP, RIGHT,  BOTTOM, LEFT)
-    qubits = np.zeros(NB_QUBITS, dtype=int) # Edges 
+    qubits = np.zeros((NB_QUBITS,2), dtype=int) # Edges 
 
     i=0
     while i < 2*L**2:
@@ -62,7 +62,9 @@ def plotToric():
         plt.axhline(y= (L-i)*2, color="black")
         plt.axhline(y= (L-i - 1/2)*2 , linestyle=':', color="black")
 
-    stabsX, stabsZ, qubits_0, qubits_1 = ([], []), ([], []), ([], []), ([], [])
+    stabsX, stabsZ = ([], []), ([], [])
+    qubits_0m, qubits_0p = ([], []), ([], [])
+    qubits_1m, qubits_1p = ([], []), ([], [])
 
     # Placing Stabilizers
     for i in range(0,L**2):
@@ -76,20 +78,30 @@ def plotToric():
     for i in range(0,NB_QUBITS):
         x = (i%L) + (1/2 if (int(i/L))%2 == 0 else 0)
         y = (L - int(i/L)) + L
-        if DATA[0][i]:
-            qubits_1[0].append(x)
-            qubits_1[1].append(y)
+        if not DATA[0][i][0] and not DATA[0][i][1]:
+            qubits_0m[0].append(x)
+            qubits_0m[1].append(y)
+        elif not DATA[0][i][0] and DATA[0][i][1]:
+            qubits_0p[0].append(x)
+            qubits_0p[1].append(y)
+        elif DATA[0][i][0] and not DATA[0][i][1]:
+            qubits_1m[0].append(x)
+            qubits_1m[1].append(y)
         else:
-            qubits_0[0].append(x)
-            qubits_0[1].append(y)
+            qubits_1p[0].append(x)
+            qubits_1p[1].append(y)
+
 
         #plt.text(x + 0.12, y - 0.27, str(i), horizontalalignment='center', verticalalignment='center', color="grey")
         plt.annotate(str(i), (x, y) , (x + 0.035, y - 0.15), color="grey")
     # Draw
     plt.scatter(stabsX[0], stabsX[1], marker='s', c ="black", label="Stab X", zorder=2)
-    plt.scatter(stabsZ[0], stabsZ[1], marker="D", c ="green", label="Stab Z", zorder=2)
-    plt.scatter(qubits_1[0], qubits_1[1], c = "red", label = "Qubit 1", zorder=2)
-    plt.scatter(qubits_0[0], qubits_0[1], c = "blue", label = "Qubit 0", zorder=2)
+    plt.scatter(stabsZ[0], stabsZ[1], marker="D", c ="black", label="Stab Z", zorder=2)
+
+    plt.scatter(qubits_0m[0], qubits_0m[1], c = "blue", label = "Qubit [0,-]", zorder=2)
+    plt.scatter(qubits_0p[0], qubits_0p[1], c = "orange", label = "Qubit [0,+]", zorder=2)
+    plt.scatter(qubits_1m[0], qubits_1m[1], c = "purple", label = "Qubit [1,-]", zorder=2)
+    plt.scatter(qubits_1p[0], qubits_1p[1], c = "red", label = "Qubit [1,+]", zorder=2)
 
 
 def buildHexa():
@@ -143,24 +155,23 @@ def plotData(r : int, s : int):
     elif(r == 3 and r == 6):
         plotTriangle()
 
-    plt.legend(bbox_to_anchor=(1.04, 0.5), loc="center left", borderaxespad=0)
+    plt.legend(bbox_to_anchor=(1.01, 0.5), loc="center left", borderaxespad=0)
     plt.subplots_adjust(right=0.8, top=0.8)
     plt.ion()
     plt.show()
     
 def generateHs():
-    NB_QUBITS = len(DATA[0])
+    NB_QUBITS = DATA[0].shape[0]
 
     Hx = np.zeros((L**2,NB_QUBITS), dtype=int)
     Hz = np.zeros((L**2,NB_QUBITS), dtype=int)
 
-    for i in range (0, L**2):
-        for index in DATA[1][i]:
-            Hx[i][index] = DATA[0][index]
+    for stabIndex in range (0, L):
+        for QubitIndex in DATA[1][stabIndex]:
+            Hx[stabIndex][QubitIndex] = 1
+        for QubitIndex in DATA[2][stabIndex]:
+            Hz[stabIndex][QubitIndex] = 1
 
-    for i in range (0, L**2):
-        for index in DATA[2][i]:
-            Hz[i][index] = DATA[0][index]
     return (Hx,Hz)
          
 def cleanPlot():
@@ -172,13 +183,14 @@ def main(args):
     global DATA
 
     buildData(args.r, args.s)
+    Hx, Hz = generateHs()
 
     while(1):
-        Hx, Hz = generateHs()
-        print("(Hz@Hx.T).T = ")
-        print((Hz@Hx.T).T)
-
         plotData(args.r, args.s)
+
+        stab = ""
+        while(stab != "Z" and stab != "X"):
+                stab = input("Select a stabilizer type {X,Z} : ")
         
         id = -1
         while(id < 0 or id >= len(DATA[0])):
@@ -186,8 +198,18 @@ def main(args):
                 id = int(input("Which physical qubit do you want to flip ? [0,"+ str(len(DATA[0]) - 1)+ "] : "))
             except ValueError :
                 id = -1
+
+        if stab == "X":
+            DATA[0][id][0] = (0 if(DATA[0][id][0]) else 1)
+        else: 
+            DATA[0][id][1] = (0 if(DATA[0][id][1]) else 1)
+
+        print("Syndrome X =")
+        print((Hx@DATA[0][:][:, 0]) % 2)
+
+        print("Syndrome Z  =")
+        print((Hz@DATA[0][:][:, 1]) % 2)
         
-        DATA[0][id] = (0 if(DATA[0][id]) else 1)
         cleanPlot()
 
 if __name__ == "__main__":
