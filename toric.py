@@ -166,7 +166,7 @@ def generateHs():
     Hx = np.zeros((L**2,NB_QUBITS), dtype=int)
     Hz = np.zeros((L**2,NB_QUBITS), dtype=int)
 
-    for stabIndex in range (0, L):
+    for stabIndex in range (0, L*L):
         for QubitIndex in DATA[1][stabIndex]:
             Hx[stabIndex][QubitIndex] = 1
         for QubitIndex in DATA[2][stabIndex]:
