@@ -1,8 +1,6 @@
-from dataStructure import Data, constructGraphStabs
-import networkx as nx
+from dataStructure import Data
 import numpy as np
-import pymatching
-
+import pymatching as pm
 
 def applyNoise(data : Data, pBitFlip : float, pPhaseFlip : float):
 
@@ -18,24 +16,12 @@ def applyNoise(data : Data, pBitFlip : float, pPhaseFlip : float):
             if(np.random.choice(np.arange(0, 2), p=[1 - pError, pError]) == 1):
                 data.qubits[i][j]  = (0 if(data.qubits[i][j]) else 1)
 
-def decode(syndromeX, syndromeZ, data : Data, R : int, S : int):
-    gX, gZ = constructGraphStabs(data, R, S)
 
-    mX = pymatching.Matching.from_networkx(gX)
-    matchingX = mX.decode_to_edges_array(syndromeX)
+def decode(Hx, Hz, syndromeX, syndromeZ):
+    mX = pm.Matching.from_check_matrix(Hx)
+    estimatedErrorX = mX.decode(syndromeX) 
 
-    mZ = pymatching.Matching.from_networkx(gZ)
-    matchingZ = mZ.decode_to_edges_array(syndromeZ)
-    
-    applyCorrection(gX, gZ, data, matchingX, matchingZ)
+    mZ = pm.Matching.from_check_matrix(Hz)
+    estimatedErrorZ = mZ.decode(syndromeZ) 
 
-def applyCorrection(gX : nx.Graph, gZ : nx.Graph, data : Data, matchingX, matchingZ):
-
-    for edge in matchingX:
-        qubitIndex = gX.get_edge_data(edge[0], edge[1])['qubit']
-        data.qubits[qubitIndex] = (0 if(data.qubits[qubitIndex][0]) else 1)
-
-    for edge in matchingZ:
-        qubitIndex = gZ.get_edge_data(edge[0], edge[1])['qubit']
-        data.qubits[qubitIndex] = (0 if(data.qubits[qubitIndex][1]) else 1)
-
+    return (estimatedErrorX, estimatedErrorZ)

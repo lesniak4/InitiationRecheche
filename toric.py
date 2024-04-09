@@ -4,34 +4,29 @@ import numpy as np
 from dataStructure import Data
 from regularPolygons.regularPolygons import buildData, plotData, cleanPlot
 from decode import applyNoise, decode
-
-
-def generateHs(L, DATA : Data):
-    NB_QUBITS = DATA.qubits.shape[0]
-
-    Hx = np.zeros((L**2,NB_QUBITS), dtype=int)
-    Hz = np.zeros((L**2,NB_QUBITS), dtype=int)
-
-    for stabIndex in range (0, L*L):
-        for QubitIndex in DATA.stabs_x[stabIndex]:
-            Hx[stabIndex][QubitIndex] = 1
-        for QubitIndex in DATA.stabs_z[stabIndex]:
-            Hz[stabIndex][QubitIndex] = 1
-
-    return (Hx,Hz)
+from matrix import generateHs, getLogicals, computeSyndrome
 
 def askErrors(L, R, S, data : Data, Hx, Hz):
-     while(1):
+    print("Type 'stop' anytime to finish") 
+
+    while(1):
         plotData(L, R, S, data)
+        response = ""
 
         stab = ""
         while(stab != "Z" and stab != "X"):
-                stab = input("Select a stabilizer type {X,Z} : ")
+            response = input("Select a stabilizer type {X,Z} : ")
+            stab = response
+            if response == "stop":
+                return
         
         id = -1
         while(id < 0 or id >= len(data.qubits)):
             try:
-                id = int(input("Which physical qubit do you want to flip ? [0,"+ str(data.qubits.shape[0] - 1)+ "] : "))
+                response = input("Which physical qubit do you want to flip ? [0,"+ str(data.qubits.shape[0] - 1)+ "] : ")
+                if response == "stop":
+                    return
+                id = int(response)
             except ValueError :
                 id = -1
 
@@ -40,61 +35,81 @@ def askErrors(L, R, S, data : Data, Hx, Hz):
         else: 
             data.qubits[id][1] = (0 if(data.qubits[id][1]) else 1)
 
-        print("Syndrome Z =")
-        print((Hx@data.qubits[:][:, 0]) % 2)
 
-        print("Syndrome X  =")
-        print((Hz@data.qubits[:][:, 1]) % 2)
-        
+        syndromeX, syndromeZ = computeSyndrome(Hx, Hz, data)
+        print("\n" + "Syndrome Z = " + str(syndromeX))
+        print("Syndrome X = " + str(syndromeZ) + "\n")
         cleanPlot()
-
-def computeSyndrome(Hx, Hz, data: Data):
-    syndromeZ = (Hx@data.qubits[:][:, 0]) % 2
-    syndromeX = (Hz@data.qubits[:][:, 1]) % 2
-
-    print("Syndrome Z = " + str(syndromeZ))
-    print("Syndrome X  = " + str(syndromeX))
-
-    return (syndromeX, syndromeZ)
-
         
 def main(args):
-
     L = args.l
     R = args.r
     S = args.s
+    VERBOSE = args.v
+    PLOTTING = args.p
+    MANUAL = args.m
+
+    # Setup our data
+    data = buildData(L, R, S)
+
+    Hx, Hz = generateHs(L, data)
+    if VERBOSE :
+        print("Hx = " + str(Hx) + "\n")
+        print("Hz = " + str(Hz) + "\n")
+
+    Lx, Lz = getLogicals(Hx, Hz)
+    if VERBOSE :
+        print("Lx = " + str(Lx))
+        print("Lz = " + str(Lz) + "\n")
 
     pBitFlip = args.pBitFlip
     pPhaseFlip = args.pPhaseFlip
 
-    data = buildData(L, R, S)
-    applyNoise(data, pBitFlip, pPhaseFlip)
+    # Apply errors to be corrected
+    if MANUAL : 
+        askErrors(L, R, S, data, Hx, Hz)
+    else : 
+        applyNoise(data, pBitFlip, pPhaseFlip)
 
-    plotData(L, R, S, data)
-    input("Press enter to decode")
-    cleanPlot()
+    if VERBOSE :
+        print("Qubits value : " + str(data.qubits[:,0]))
+        print("Qubits phase : " + str(data.qubits[:,1]) + "\n")
 
-    Hx, Hz = generateHs(L, data)
-    print("Before Decoding : ")
+    # Determine which stabilizers are affected
     syndromeX, syndromeZ = computeSyndrome(Hx, Hz, data)
+    if VERBOSE :
+        print("Syndrome X = " + str(syndromeX))
+        print("Syndrome Z = " + str(syndromeZ) + "\n") 
 
-    decode(syndromeZ, syndromeX, data, R, S)
+    if PLOTTING : 
+        plotData(L, R, S, data)
+        input("Press enter to decode")
+        cleanPlot()
+        print("\n") 
 
-    print("\nAfter Decoding : ")
-    syndromeX, syndromeZ = computeSyndrome(Hx, Hz, data)
+    # Try decoding errors with PyMatching MWPM
+    estErrX, estErrZ = decode(Hx, Hz, syndromeZ, syndromeX)
+    if VERBOSE :
+        print("Estimated error X (êx) = " + str(estErrX))
+        print("Estimated error Z (êz) = " + str(estErrZ) + "\n") 
 
-    if(np.any(syndromeX) or np.any(syndromeZ)):
-        print("Failed to decode")
+    # Check if there is any logical qubit error 
+    verifX = (Lx @ (data.qubits[:,0] + estErrX)) % 2
+    verifZ = (Lz @ (data.qubits[:,1] + estErrZ)) % 2
+    if VERBOSE :
+        print("Lx(ex + êx) = " + str(verifX))
+        print("Lz(ez + êz) =  " + str(verifZ) + "\n") 
+
+    if(np.any(verifX) or np.any(verifZ)):
+        print("Failed to decode" + "\n")
     else: 
-        print("Decoded successfully")
+        print("Decoded successfully" + "\n")
 
-    plotData(L, R, S, data)
-    input("Press enter to exit the program")
-    cleanPlot()
-
-    #askErrors(L, R, S, data, Hx, Hz)
-    
-   
+    if PLOTTING : 
+        plotData(L, R, S, data)
+        input("\nPress enter to exit the program")
+        cleanPlot()
+        print("\n") 
     
 
 if __name__ == "__main__":
@@ -104,6 +119,9 @@ if __name__ == "__main__":
     parser.add_argument("s", help="Define the number of r-gones on each vertex", type=int)
     parser.add_argument("pBitFlip", help="Define the probability of a physical bitFlip [0,1]", type=float)
     parser.add_argument("pPhaseFlip", help="Define the probability of a physical phaseFlip [0,1]", type=float)
+    parser.add_argument("-p", help="Enable plot printing", action='store_true')
+    parser.add_argument("-v", help="Enable verbose", action='store_true')
+    parser.add_argument("-m", help="Manual setup of qubits error (pBitFlip = pPhaseFlip = 0)", action='store_true')
     args = parser.parse_args()
 
     if(args.l < 1):
