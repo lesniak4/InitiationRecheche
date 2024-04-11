@@ -136,7 +136,7 @@ def main(args):
     S,A,F = buildMesh(args.r, args.l)
 
     for a in A:
-        plt.plot([S[a[0]][0], S[a[1]][0]], [S[a[0]][1], S[a[1]][1]], 'r-')
+        plt.plot([S[a[0]][0], S[a[1]][0]], [S[a[0]][1], S[a[1]][1]], 'b-')
 
     for i in range(len(S)):
         plt.annotate(str(i), S[i] , (S[i][0], S[i][1]), color="grey")
