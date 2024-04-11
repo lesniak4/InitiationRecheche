@@ -9,7 +9,8 @@ def buildMesh(r, l):
 
     n = r
     
-    S = [(cos(-2*i*pi/r),sin(-2*i*pi/r)) for i in range(r)]
+    angle = -2*pi/r
+    S = [(cos(angle*i + 3*pi/r),sin(angle*i + 3*pi/r)) for i in range(r)]
     A = []
     F = []
 
@@ -66,6 +67,8 @@ def buildMesh(r, l):
         # Subdivision des faces principales
         for j in range(len(F)):
             for k in range(len(F[j])):
+
+                # Recherche des arêtes dans les faces division
                 if F[j][k] == A[i][0] and F[j][(k+1)%len(F[j])] == A[i][l]:
                     for m in range(l-2, -1, -1):
                         F[j].insert(k+1, n+m)
@@ -89,9 +92,15 @@ def buildMesh(r, l):
                         subA.append(a)
                 # Construction et division des arêtes de la grille
                 for k in range(l-1):
+
+                    # Extrémité "gauche" de l'arête
                     s1 = F[i][j-2*l-(k+1)]
+
+                    # Extrémité "droite"
                     s2 = F[i][j-((l-1)-k)]
+
                     a = [s1, s2]
+                    # Division de l'arête
                     for m in range(l-1):
                         a.insert(1, n)
                         S.append((S[s1][0] + (S[s2][0] - S[s1][0])*(l-(m+1)) / l, S[s1][1] + (S[s2][1] - S[s1][1])*(l-(m+1)) / l))
@@ -102,15 +111,16 @@ def buildMesh(r, l):
                     if (F[i][j-3*l] in a) and (F[i][j] in a): 
                         subA.append(a)
 
-        # Construction des faces à partir des arêtes
+        # Construction des faces à partir des arêtes divisées
         for j in range(len(subA)-1):
             for k in range(l):
                 s1 = subA[j][k]
                 s2 = subA[j][k+1]
                 s3 = subA[j+1][k+1]
                 s4 = subA[j+1][k]
-
                 subF.append([s1, s2, s3, s4])
+
+                # Reconstruction des arêtes (avec 2 sommets) à partir des nouvelles faces
                 newA.add((s1, s2) if s1 < s2 else (s2, s1))
                 newA.add((s2, s3) if s2 < s3 else (s3, s2))
                 newA.add((s3, s4) if s3 < s4 else (s4, s3))
@@ -118,7 +128,7 @@ def buildMesh(r, l):
 
     F = subF
     A = newA
-              
+     
     return S,A,F
    
 def main(args):
