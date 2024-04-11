@@ -28,16 +28,24 @@ def buildMesh(r, l):
     S.append((0,0))
     n += 1
     subF = F[0]
+    # Division des arêtes
     for i in range(len(A)):
-        A.append([n, sCenter])
+        
+        # Sous-arête de droite
         A.append([n, A[i][1]])
+        # Arête vers le centre
+        A.append([n, sCenter])
 
+        # Ajout du nouveau sommet
         S.append(((S[A[i][0]][0] + S[A[i][1]][0]) / 2, (S[A[i][0]][1] + S[A[i][1]][1]) / 2))
+
+        # Sous-arête de gauche
         A[i] = [A[i][0], n]
         
         subF[0].insert(2*i+1, n)
         n += 1
 
+    # Ajout des nouvelles faces
     for i in range(r):
         ind = 2*i
         subF.append([subF[0][ind-1], subF[0][ind], subF[0][ind+1], sCenter])
@@ -97,11 +105,16 @@ def buildMesh(r, l):
         # Construction des faces à partir des arêtes
         for j in range(len(subA)-1):
             for k in range(l):
-                subF.append([subA[j][k], subA[j][k+1], subA[j+1][k+1], subA[j+1][k]])
-                newA.add((subA[j][k], subA[j][k+1]) if subA[j][k] < subA[j][k+1] else (subA[j][k+1], subA[j][k]))
-                newA.add((subA[j][k+1], subA[j+1][k+1]) if subA[j][k+1] < subA[j+1][k+1] else (subA[j+1][k+1], subA[j][k+1]))
-                newA.add((subA[j+1][k+1], subA[j+1][k]) if subA[j+1][k+1] < subA[j+1][k] else (subA[j+1][k], subA[j+1][k+1]))
-                newA.add((subA[j+1][k], subA[j][k]) if subA[j+1][k] < subA[j][k] else (subA[j][k], subA[j+1][k]))
+                s1 = subA[j][k]
+                s2 = subA[j][k+1]
+                s3 = subA[j+1][k+1]
+                s4 = subA[j+1][k]
+
+                subF.append([s1, s2, s3, s4])
+                newA.add((s1, s2) if s1 < s2 else (s2, s1))
+                newA.add((s2, s3) if s2 < s3 else (s3, s2))
+                newA.add((s3, s4) if s3 < s4 else (s4, s3))
+                newA.add((s4, s1) if s4 < s1 else (s1, s4))
 
     F = subF
     A = newA
