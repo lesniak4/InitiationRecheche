@@ -104,12 +104,6 @@ def main(args):
         print("Failed to decode" + "\n")
     else: 
         print("Decoded successfully" + "\n")
-
-    if PLOTTING : 
-        plotData(L, R, S, data)
-        input("\nPress enter to exit the program")
-        cleanPlot()
-        print("\n") 
     
 
 if __name__ == "__main__":
