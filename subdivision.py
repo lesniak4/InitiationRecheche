@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import copy
 from math import *
+from dataStructure import Data
 
 def subdivide(code, l):
 
@@ -189,31 +190,53 @@ def subdivide(code, l):
         totA = totA.union(fA)
         totF += fF
 
-    return totS, totA, totF
-   
+    return totS, list(totA), totF
+
+def buildCodeFromGeometry(geometry):
+
+    S,A,F = geometry
+
+    qubits = np.zeros((len(A),2), dtype=int)
+    stabs_z = [[] for f in F]
+    stabs_x = [[] for s in S]
+
+    # Construction des stabilizers
+    for i in range(len(A)):
+        for j in range(len(F)):
+            f = F[j]
+            n = len(f)
+            for k in range(n):
+                if (A[i][0] == f[k] and A[i][1] == f[(k+1)%n]) or (A[i][1] == f[k] and A[i][0] == f[(k+1)%n]):
+                    stabs_z[j].append(i)
+        
+        for s in range(len(S)):
+            if s in A[i]:
+                stabs_x[s].append(i)
+
+    return Data(qubits, stabs_x, stabs_z)
+
 def main(args):
 
     angle = -2*pi/6
-    '''
+    
     codeS = [(cos(angle*i + 3*pi/6),sin(angle*i + 3*pi/6)) for i in range(6)] + [(sqrt(3)*0.5+cos(angle*i + 5*pi/6),1.5+sin(angle*i + 5*pi/6)) for i in range(4)] + [(sqrt(3)+cos(angle*i + pi/6),sin(angle*i + pi/6)) for i in range(3)]
     codeS += [(sqrt(3)*0.5+cos(angle*i -pi/6),-1.5+sin(angle*i -pi/6)) for i in range(3)] + [(-sqrt(3)*0.5+cos(angle*i -3*pi/6),-1.5+sin(angle*i -3*pi/6)) for i in range(3)] + [(-sqrt(3)*0.5+cos(angle*i -5*pi/6),1.5+sin(angle*i -5*pi/6)) for i in range(3)]
     codeA = [(0,1), (1,2), (2,3), (3,4), (4,5), (5,0), (0,6), (6,7), (7,8), (8,9), (9,1), (9,10),(10,11),(11,12),(12,2),(12,13),(13,14),(14,15),(15,3),(15,16),(16,17),(17,18),(18,4), (5,19),(19,20),(20,21),(21,6)]
     codeF = [[0,1,2,3,4,5], [6,7,8,9,1,0],[9,10,11,12,2,1], [2,12,13,14,15,3],[4,3,15,16,17,18],[20,21,6,0,5,19]]
     centers = [(0,0), (sqrt(3)*0.5, 1.5), (sqrt(3), 0), (sqrt(3)*0.5, -1.5), (-sqrt(3)*0.5, -1.5), (-sqrt(3)*0.5, 1.5)]
-    
+    '''
     codeS = [(-0.5,0.5), (0.5,0.5), (0.5,-0.5), (-0.5,-0.5), (-0.5,1.5), (0.5,1.5), (1.5,0.5), (1.5,-0.5), (0.5,-1.5), (-0.5,-1.5), (-1.5,-0.5), (-1.5,0.5), (-1.5,1.5), (1.5,1.5), (1.5,-1.5), (-1.5,-1.5)]
     codeA = [(0,1), (1,2), (2,3), (3,0), (0,4), (4,5), (5,1), (1,6),(6,7),(7,2),(2,8),(8,9),(9,3),(3,10),(10,11),(11,0),(11,12),(12,4),(5,13),(6,13),(7,14),(14,8),(9,15),(15,10)]
     codeF = [[0,1,2,3], [4,5,1,0], [1,6,7,2], [3,2,8,9], [11,0,3,10], [12,4,0,11], [5,13,6,1],[2,7,14,8],[10,3,9,15]]
     centers = [(0,0), (0,1), (1,0), (0,-1), (-1, 0),(-1,1),(1,1),(1,-1),(-1,-1)]
+    
+    codeS = [(-0.5,0.5), (0.5,0.5), (0.5,-0.5), (-0.5,-0.5), (-0.5,1.5), (0.5,1.5), (-1.5,-0.5), (-1.5,0.5), (-1.5,1.5)]
+    codeA = [(0,1), (1,2), (2,3), (3,0), (0,4), (4,5), (5,1),(3,6),(6,7),(7,0),(7,8),(8,4),(5,8),(1,7),(2,6),(8,6),(4,3),(5,2)]
+    codeF = [[0,1,2,3], [4,5,1,0], [1,7,6,2], [5,8,7,1], [8,4,0,7], [7,0,3,6], [6,3,4,8],[3,2,5,4]]
+    centers = [(0,0), (0,1), (1,0), (1,1), (-1, 1),(-1,0),(-1,-1),(0,-1)]
     '''
-    
-    codeS = [(-0.5,0.5), (0.5,0.5), (0.5,-0.5), (-0.5,-0.5), (-0.5,1.5), (0.5,1.5), (1.5,0.5), (1.5,-0.5), (0.5,-1.5), (-0.5,-1.5), (-1.5,-0.5), (-1.5,0.5), (-1.5,1.5), (1.5,1.5), (1.5,-1.5), (-1.5,-1.5)]
-    codeA = [(0,1), (1,2), (2,3), (3,0), (0,4), (4,5), (5,1),(3,10),(10,11),(11,0),(11,12),(12,4),(5,12),(1,11),(2,10),(12,10),(4,3),(5,2)]
-    codeF = [[0,1,2,3], [4,5,1,0], [1,11,10,2], [3,2,5,4], [11,0,3,10], [12,4,0,11], [5,12,11,1],[10,3,4,12]]
-    centers = [(0,0), (0,1), (1,0), (0,-1), (-1, 0),(-1,1),(1,1),(-1,-1)]
-    
     code = (codeS,codeA,codeF,centers)
-    S,A,F = subdivide(code, args.l) #buildMesh(args.r, args.l)
+    S,A,F = subdivide(code, args.l)
 
     print("S ", len(S))
     print("A ", len(A))
@@ -228,7 +251,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("r", help="Define the number of edges on each face of the r-gones", type=int)
+    parser.add_argument("r", help="Define the number of edges on each face of the r-gons", type=int)
     parser.add_argument("l", help="Define the number of subdivisions of each face", type=int)
     args = parser.parse_args()
     R = args.r

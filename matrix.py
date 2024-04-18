@@ -2,15 +2,18 @@ from dataStructure import Data
 import numpy as np
 import flinalg as fl
 
-def generateHs(L, DATA : Data):
-    NB_QUBITS = DATA.qubits.shape[0]
+def generateHs(DATA : Data):
+    NB_QUBITS = len(DATA.qubits)
+    NB_STABS_X = len(DATA.stabs_x)
+    NB_STABS_Z = len(DATA.stabs_z)
+    
+    Hx = np.zeros((NB_STABS_X,NB_QUBITS), dtype=int)
+    Hz = np.zeros((NB_STABS_Z,NB_QUBITS), dtype=int)
 
-    Hx = np.zeros((L**2,NB_QUBITS), dtype=int)
-    Hz = np.zeros((L**2,NB_QUBITS), dtype=int)
-
-    for stabIndex in range (0, L*L):
+    for stabIndex in range (0, NB_STABS_X):
         for QubitIndex in DATA.stabs_x[stabIndex]:
             Hx[stabIndex][QubitIndex] = 1
+    for stabIndex in range (0, NB_STABS_Z):   
         for QubitIndex in DATA.stabs_z[stabIndex]:
             Hz[stabIndex][QubitIndex] = 1
 
