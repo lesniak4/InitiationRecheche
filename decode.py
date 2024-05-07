@@ -15,6 +15,7 @@ def applyNoise(data : Data, pBitFlip : float, pPhaseFlip : float):
             
             if(np.random.choice(np.arange(0, 2), p=[1 - pError, pError]) == 1):
                 data.qubits[i][j]  = (0 if(data.qubits[i][j]) else 1)
+                nbQubitsError = nbQubitsError + 1
 
 
 def decode(Hx, Hz, syndromeX, syndromeZ):

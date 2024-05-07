@@ -52,7 +52,7 @@ def main(args):
     # Setup our data
     data = buildData(L, R, S)
 
-    Hx, Hz = generateHs(L, data)
+    Hx, Hz = generateHs(data)
     if VERBOSE :
         print("Hx = " + str(Hx) + "\n")
         print("Hz = " + str(Hz) + "\n")
@@ -64,6 +64,12 @@ def main(args):
 
     pBitFlip = args.pBitFlip
     pPhaseFlip = args.pPhaseFlip
+
+    if PLOTTING : 
+        plotData(L, R, S, data)
+        input("Press enter to apply noise")
+        cleanPlot()
+        print("\n") 
 
     # Apply errors to be corrected
     if MANUAL : 
