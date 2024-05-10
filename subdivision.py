@@ -1,7 +1,6 @@
 import sys, argparse
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import copy
 from math import *
 from dataStructure import Data
@@ -19,7 +18,7 @@ def subdivide(code, l):
     totF = []
     oldF = []
 
-    # Subdivision de chaque face du code
+    # Subdivision of each face of the code
     for p in range(len(F)):
         f = F[p]
         r = len(f)
@@ -30,29 +29,29 @@ def subdivide(code, l):
         fA.append((f[len(f)-1], f[0]))
         fF = [f]
         
-        # Première division
+        # First subdivision
         sCenter = n
         fS.append(centers[p])
         n += 1
         subF = [fF[0]]
         newS = []
-        # Division des arêtes
+        # Edges division
         for i in range(len(fA)):
             s = n
             for j in range(len(oldF)):
-                # On vérifie si l'arête n'a pas déjà été divisée
+                # Verify if the edge is not already divided
                 for k in range(len(oldF[j])):
                     if ((oldF[j][k] == fA[i][0]) and (oldF[j][(k+2*l)%len(oldF[j])] == fA[i][1])) or ((oldF[j][k] == fA[i][1]) and (oldF[j][(k+2*l)%len(oldF[j])] == fA[i][0])):
                         s = oldF[j][(k+l)%len(oldF[j])]
 
-            # Sous-arête de droite
+            # Right sub-edge
             fA.append([s, fA[i][1]])
             
-            # Ajout du nouveau sommet
+            # Add the new vertice
             if s == n:
                 fS.append(((fS[fA[i][0]][0] + fS[fA[i][1]][0]) / 2, (fS[fA[i][0]][1] + fS[fA[i][1]][1]) / 2))
 
-            # Sous-arête de gauche
+            # Left sub-edge
             fA[i] = [fA[i][0], s]
 
             subF[0].insert(2*i+1, s)
@@ -62,10 +61,10 @@ def subdivide(code, l):
                 n+=1
 
         for s in newS:
-            # Arête vers le centre
+            # Edge towards the center
             fA.append([s, sCenter])
 
-        # Ajout des nouvelles faces
+        # Add new faces
         for i in range(r):
             ind = 2*i
             subF.append([subF[0][ind-1], subF[0][ind], subF[0][ind+1], sCenter])
@@ -75,23 +74,23 @@ def subdivide(code, l):
         fF.pop(0)
         fF = subF
 
-        # Autres subdivisions
+        # Other subdivisions
         prevF = copy.deepcopy(fF)
         for i in range(len(fA)):
-            sd = [] # liste des sommets pré-existants à insérer
-            for j in range(len(oldF)-1): # -1 car la dernière correspond à la face actuelle
-                # On vérifie si l'arête n'a pas déjà été divisée
+            sd = [] # List of pre-existing vertices to insert
+            for j in range(len(oldF)-1): # -1 because the last one is corresponding to the current face
+                # Verify if the edge is not already divided
                 for k in range(len(oldF[j])):
                     if (oldF[j][k] == fA[i][0]) and (oldF[j][(k+l)%len(oldF[j])] == fA[i][1]):
-                        # on ajoute les sommets à la liste
+                         # Add the new vertices to the list
                         for d in range(1,l):
                             sd.append(oldF[j][(k+d)%len(oldF[j])])
                     if (oldF[j][k] == fA[i][1]) and (oldF[j][(k+l)%len(oldF[j])] == fA[i][0]):
-                        # on ajoute les sommets à la liste
+                         # Add the new vertices to the list
                         for d in range(1,l):
                             sd.insert(0,oldF[j][(k+d)%len(oldF[j])])
 
-            # Subdivision des arêtes principales
+            # Subdivision of main edges
             if len(sd) > 0:
                 for k in range(len(sd)):
                     fA[i].insert(k+1, sd[k])
@@ -100,11 +99,11 @@ def subdivide(code, l):
                     fA[i].insert(k+1, n+k)
                     fS.append((fS[fA[i][0]][0] + (fS[fA[i][ len(fA[i])-1 ]][0] - fS[fA[i][0]][0])*(k+1) / l, fS[fA[i][0]][1] + (fS[fA[i][ len(fA[i])-1 ]][1] - fS[fA[i][0]][1])*(k+1) / l))
 
-            # Subdivision des faces principales
+            # Subdivision of main edges
             for j in range(len(fF)):
                 for k in range(len(fF[j])):
 
-                    # Recherche des arêtes dans les faces et division
+                    # Find edges in faces and divide
                     if fF[j][k] == fA[i][0] and fF[j][(k+1)%len(fF[j])] == fA[i][l]:
                         if len(sd) > 0:
                             for m in range(len(sd)):
@@ -121,7 +120,7 @@ def subdivide(code, l):
                             for m in range(l-1):
                                 fF[j].insert(k+1, n+m)
 
-            # Mise à jour de la grosse face
+            # Update of the big face
             subOldF = copy.deepcopy(oldF[-1])
             for j in range(len(oldF[-1])):
                 if oldF[-1][j] == fA[i][0] and oldF[-1][(j+1)%len(oldF[-1])] == fA[i][l]:
@@ -140,35 +139,35 @@ def subdivide(code, l):
 
         for i in range(len(fF)):
             subA = []
-            # Construction des arêtes intermédiaires
+            # Construction of intermediate edges
             for j in range(len(fF[i])):
                 if fF[i][j] == sCenter:
-                    # Ajout de la première arête
+                    # Adding the first edge
                     for a in fA:
                         if (fF[i][j-2*l] in a) and (fF[i][j-l] in a): 
                             subA.append(a)
-                    # Construction et division des arêtes de la grille
+                    # Edge construction and division of the grid
                     for k in range(l-1):
 
-                        # Extrémité "gauche" de l'arête
+                        # Left extremity of the edge
                         s1 = fF[i][j-2*l-(k+1)]
 
-                        # Extrémité "droite"
+                        # Right extremity of the edge
                         s2 = fF[i][j-((l-1)-k)]
 
                         a = [s1, s2]
-                        # Division de l'arête
+                        # Edge division
                         for m in range(l-1):
                             a.insert(1, n)
                             fS.append((fS[s1][0] + (fS[s2][0] - fS[s1][0])*(l-(m+1)) / l, fS[s1][1] + (fS[s2][1] - fS[s1][1])*(l-(m+1)) / l))
                             n+=1
                         subA.append(a)
-                    # Ajout de la dernière arête
+                    # Add the last edge
                     for a in fA:
                         if (fF[i][j-3*l] in a) and (fF[i][j] in a): 
                             subA.append(a)
 
-            # Construction des faces à partir des arêtes divisées
+            # Face construction from divided edges
             for j in range(len(subA)-1):
                 for k in range(l):
                     s1 = subA[j][k]
@@ -177,7 +176,7 @@ def subdivide(code, l):
                     s4 = subA[j+1][k]
                     subF.append([s1, s2, s3, s4])
 
-                    # Reconstruction des arêtes (avec 2 sommets) à partir des nouvelles faces
+                    # Reconstruction of edges (with 2 vertices) from new faces
                     newA.add((s1, s2) if s1 < s2 else (s2, s1))
                     newA.add((s2, s3) if s2 < s3 else (s3, s2))
                     newA.add((s3, s4) if s3 < s4 else (s4, s3))
@@ -200,7 +199,7 @@ def buildCodeFromGeometry(geometry):
     stabs_z = [[] for f in F]
     stabs_x = [[] for s in S]
 
-    # Construction des stabilizers
+    # Stabilizers construction
     for i in range(len(A)):
         for j in range(len(F)):
             f = F[j]

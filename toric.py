@@ -7,6 +7,11 @@ from decode import applyNoise, decode
 from matrix import generateHs, getLogicals, computeSyndrome
 
 def askErrors(L, R, S, data : Data, Hx, Hz):
+    """
+    Function to add manual errors to the qubits 
+    """
+
+
     print("Type 'stop' anytime to finish") 
 
     while(1):
@@ -42,28 +47,33 @@ def askErrors(L, R, S, data : Data, Hx, Hz):
         cleanPlot()
         
 def main(args):
-    L = args.l
-    R = args.r
-    S = args.s
-    VERBOSE = args.v
-    PLOTTING = args.p
-    MANUAL = args.m
+
+    # Collecting arguments
+
+    L = args.L
+    R = 4
+    S = 4
+    VERBOSE = args.V
+    PLOTTING = args.P
+    MANUAL = args.M
+
+    pBitFlip = args.pErrorX
+    pPhaseFlip = args.pErrorZ
 
     # Setup our data
     data = buildData(L, R, S)
 
+    # Generate parity matrices
     Hx, Hz = generateHs(data)
     if VERBOSE :
         print("Hx = " + str(Hx) + "\n")
         print("Hz = " + str(Hz) + "\n")
 
+    # Generate logical operators
     Lx, Lz = getLogicals(Hx, Hz)
     if VERBOSE :
         print("Lx = " + str(Lx))
         print("Lz = " + str(Lz) + "\n")
-
-    pBitFlip = args.pBitFlip
-    pPhaseFlip = args.pPhaseFlip
 
     if PLOTTING : 
         plotData(L, R, S, data)
@@ -71,7 +81,7 @@ def main(args):
         cleanPlot()
         print("\n") 
 
-    # Apply errors to be corrected
+    # Apply noise
     if MANUAL : 
         askErrors(L, R, S, data, Hx, Hz)
     else : 
@@ -81,8 +91,9 @@ def main(args):
         print("Qubits value : " + str(data.qubits[:,0]))
         print("Qubits phase : " + str(data.qubits[:,1]) + "\n")
 
-    # Determine which stabilizers are affected
+    # Determine which stabilizers are affected by computing syndrome for each type of error
     syndromeX, syndromeZ = computeSyndrome(Hx, Hz, data)
+
     if VERBOSE :
         print("Syndrome X = " + str(syndromeX))
         print("Syndrome Z = " + str(syndromeZ) + "\n") 
@@ -113,28 +124,25 @@ def main(args):
     
 
 if __name__ == "__main__":
+    # Check arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("l", help="Define the length of the toric surface code", type=int)
-    parser.add_argument("r", help="Define the number of edges on each face of the r-gones", type=int)
-    parser.add_argument("s", help="Define the number of r-gones on each vertex", type=int)
-    parser.add_argument("pBitFlip", help="Define the probability of a physical bitFlip [0,1]", type=float)
-    parser.add_argument("pPhaseFlip", help="Define the probability of a physical phaseFlip [0,1]", type=float)
-    parser.add_argument("-p", help="Enable plot printing", action='store_true')
-    parser.add_argument("-v", help="Enable verbose", action='store_true')
-    parser.add_argument("-m", help="Manual setup of qubits error (pBitFlip = pPhaseFlip = 0)", action='store_true')
+    parser.add_argument("L", help="Define the length of the toric surface code", type=int)
+    parser.add_argument("pErrorX", help="Define the probability of a physical error X [0,1]", type=float)
+    parser.add_argument("pErrorZ", help="Define the probability of a physical error Z [0,1]", type=float)
+    parser.add_argument("-P", help="Enable plot printing", action='store_true')
+    parser.add_argument("-V", help="Enable verbose", action='store_true')
+    parser.add_argument("-M", help="Manual setup of qubits error (pBitFlip = pPhaseFlip = 0)", action='store_true')
     args = parser.parse_args()
 
-    if(args.l < 1):
+    if(args.L < 1):
         print("Length must be > 0")
         sys.exit(1)
-    if(args.r != 4 or args.s != args.r):
-        print("R and S must be 4 for now")
+    if(args.pErrorX < 0 or args.pErrorX > 1):
+        print("Probability of a physical error X must be in  [0,1]")
         sys.exit(1)
-    if(args.pBitFlip < 0 or args.pBitFlip > 1):
-        print("Probability of a physical bitFlip must be in  [0,1]")
-        sys.exit(1)
-    if(args.pPhaseFlip < 0 or args.pPhaseFlip > 1):
-        print("Probability of a physical phaseFlip must be in  [0,1]")
+    if(args.pErrorZ < 0 or args.pErrorZ > 1):
+        print("Probability of a physical error Z must be in  [0,1]")
         sys.exit(1)
 
+    # Go to main
     main(args)

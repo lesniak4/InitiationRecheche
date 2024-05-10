@@ -1,6 +1,5 @@
 import sys, argparse
 import numpy as np
-import copy
 import matplotlib.pyplot as plt
 from dataStructure import Data
 from regularPolygons.regularPolygons import buildData
@@ -34,20 +33,27 @@ def plot(pLogical2D, pPhysical, l):
 
 def iterate(data, matrixes, pPhysical):
 
+    # Retreive our matrices
     Hx, Hz, Lx, Lz =  matrixes
 
+    # Apply noise
     applyNoise(data, pPhysical, pPhysical)
 
+    # Compute syndrome
     syndromeX, syndromeZ = computeSyndrome(Hx, Hz, data)
 
+    # Decode syndrome
     estErrX, estErrZ = decode(Hx, Hz, syndromeZ, syndromeX)
  
+    # Verify if there is a logical error
     verifX = (Lx @ (data.qubits[:,0] + estErrX)) % 2
     verifZ = (Lz @ (data.qubits[:,1] + estErrZ)) % 2
 
     return int(np.any(verifX) or np.any(verifZ))
 
 def buildCustom(subDivNumber):
+    # Build a custom surface code
+
     '''
     codeS = [(-0.5,0.5), (0.5,0.5), (0.5,-0.5), (-0.5,-0.5), (-0.5,1.5), (0.5,1.5), (-1.5,-0.5), (-1.5,0.5), (-1.5,1.5)]
     codeA = [(0,1), (1,2), (2,3), (3,0), (0,4), (4,5), (5,1),(3,6),(6,7),(7,0),(7,8),(8,4),(5,8),(1,7),(2,6),(8,6),(4,3),(5,2)]
@@ -68,12 +74,14 @@ def buildCustom(subDivNumber):
     return data
 
 def main(args):
+
+    # Collecting arguments
     L = args.L
-    R = args.r
-    S = args.s
     N = args.n
+    R = 4
+    S = 4
     PLOT = args.P
-    VERBOSE = args.v
+    VERBOSE = args.V
     l = args.l
     SUB_DIV_MAX = args.lm
     OUTPUT = args.o
@@ -87,34 +95,50 @@ def main(args):
     if not SUB_DIV_MAX:
         SUB_DIV_MAX = l
 
+    # Stored values of Logical errors probabilities for each subdivision (and for each error probability)
     stored_pLogical = []
     
+    # We go from l subdivisions to SUB_DIV_MAX subdivisions
     for subDivNumber in range(l, SUB_DIV_MAX + 1):
 
+        # Build our datas 
         if not SUBDIVIDE:
             data = buildData(L, R, S)
         else: 
             data = buildCustom(subDivNumber)
 
+        # Total number of physical qubits
         NB_QUBITS = len(data.qubits)
         
+        # Generate parity matrices
         Hx, Hz = generateHs(data)
+
+        # Generate logical operators
         Lx, Lz = getLogicals(Hx, Hz)
 
-        pLogical = [ 0.0 ] # proba logical = 0 when proba physical = 0
+        pLogical = [ 0.0 ] # proba logical = 0 when proba physical = 0 | First iteration
+
+        # We go from STEP to P_MAX error probability
         current_p = STEP
         while (current_p < 1 and current_p < P_MAX + STEP/2):
             nb_err = 0
+            # We do N-1 iterations for the same error probability
             for i in range(1, N):
+
+                # Deep copy of our data to apply noise independently for our simulation
                 freshData = Data(np.zeros((NB_QUBITS,2), dtype=int), data.stabs_x, data.stabs_z)
+                
+                # Launch simulation
                 nb_err += iterate(freshData, (Hx, Hz, Lx, Lz), current_p)
 
             if(VERBOSE):
                 print("Result for p = ", current_p, " : ", float(nb_err) / N)
 
             current_p += STEP
+            # Store the error mean for this error probability
             pLogical.append(float(nb_err) / N)
 
+        # Store the results for this subdivision
         stored_pLogical.append(pLogical)
         
 # Display graph and output file if needed
@@ -123,6 +147,7 @@ def main(args):
 
     if(OUTPUT):
         for i in range(0, len(stored_pLogical)):
+            # Output the results in Tikz format in the specified file (to import in Latex)
             writeFile(stored_pLogical[i], pPhysical, OUTPUT)
 
     if(PLOT):
@@ -130,10 +155,9 @@ def main(args):
     
 
 if __name__ == "__main__":
+    # Check arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("L", help="Define the length of the toric surface code", type=int)
-    parser.add_argument("r", help="Define the number of edges on each face of the r-gones", type=int)
-    parser.add_argument("s", help="Define the number of r-gones on each vertex", type=int)
     parser.add_argument("n", help="Define the number of iteration per step", type=int)
     parser.add_argument("pStep", help="Define the analysis step of physical error probability", type=float)
     parser.add_argument("pMax", help="Define the limit of physical error probability", type=float)
@@ -142,20 +166,17 @@ if __name__ == "__main__":
     parser.add_argument("-lm", help="Define the max subdivision number for each face (only matters if -S is specified)", type=int)
     parser.add_argument("-o", help="Save results in Latex format in the file specified.")
     parser.add_argument("-P", help="Enable plotting", action='store_true')
-    parser.add_argument("-v", help="Enable verbose", action='store_true')
+    parser.add_argument("-V", help="Enable verbose", action='store_true')
     args = parser.parse_args()
 
     if(args.L < 1):
         print("Length must be > 0")
         sys.exit(1)
-    if(args.r != 4 or args.s != args.r):
-        print("R and S must be 4 for now")
+    if(args.pStep <= 0 or args.pStep >= 1):
+        print("Probability of a physical error must be in  ]0,1[")
         sys.exit(1)
-    if(args.pStep < 0 or args.pStep > 1):
-        print("Probability of a physical error must be in  [0,1]")
-        sys.exit(1)
-    if(args.pMax <= 0 or args.pMax > 1):
-        print("Probability of a physical error must be in  [0,1]")
+    if(args.pMax <= args.pStep or args.pMax > 1):
+        print("Probability of a physical error must be in  ]pStep,1[")
         sys.exit(1)
     if args.S and args.l is None:
         print("Specify required l value")
@@ -164,4 +185,5 @@ if __name__ == "__main__":
         print("-S not specified -l and -lm ignored.")
         sys.exit(1)
 
+    # Go to main
     main(args)

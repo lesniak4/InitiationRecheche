@@ -87,7 +87,6 @@ def plotToric(L : int, DATA : Data):
             qubits_1p[0].append(x)
             qubits_1p[1].append(y)
 
-        #plt.text(x + 0.12, y - 0.27, str(i), horizontalalignment='center', verticalalignment='center', color="grey")
         plt.annotate(str(i), (x, y) , (x + 0.035, y - 0.15), color="grey")
     
     # Draw

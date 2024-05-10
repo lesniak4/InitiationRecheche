@@ -10,6 +10,8 @@ def generateHs(DATA : Data):
     Hx = np.zeros((NB_STABS_X,NB_QUBITS), dtype=int)
     Hz = np.zeros((NB_STABS_Z,NB_QUBITS), dtype=int)
 
+    # Each line is representing a stabilizer, each column is a physical qubit
+    # We put ones if the physical qubit is linked with the stabilizer otherwise 0
     for stabIndex in range (0, NB_STABS_X):
         for QubitIndex in DATA.stabs_x[stabIndex]:
             Hx[stabIndex][QubitIndex] = 1
@@ -33,6 +35,7 @@ def getLogicals(Hx, Hz):
     return (np.array(logicalxspace), np.array(logicalzspace))
 
 def computeSyndrome(Hx, Hz, data: Data):
+    # each line represents a stabilizer, its value is 1 if it has an odd number of qubits that are in error
     syndromeZ = (Hx@data.qubits[:][:, 0]) % 2
     syndromeX = (Hz@data.qubits[:][:, 1]) % 2
 
